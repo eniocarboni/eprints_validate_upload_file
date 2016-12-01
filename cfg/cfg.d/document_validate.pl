@@ -67,36 +67,16 @@ $c->{validate_document} = sub
 		}
 	}
 
-         # inizio test antivirus: dovrebbe essere l'ultimo test dato che se trova un virus
-         #        elimina questo documento (anche se ha piu' file)
-         my %files=$document->files;
-         my $local_path=$document->local_path;
-         foreach my $file (keys %files) {
-	   my $upload=$repository->get_conf('upload','upload_limit');
-           if ($upload) {
-	     my $size=-s "$local_path/$file";
-	     if ($size > $upload ) {
-	       $document->remove;
-	       $repository->log( $repository->phrase("document_validate:upload_error_maxsize",file=>$repository->make_text("$local_path/$file"),size=>$repository->make_text($size),limit=>$repository->make_text($upload)));
-	       push @problems,$repository->html_phrase("document_validate:upload_error_maxsize",file=>$repository->make_text("$file"),size=>$repository->make_text($size),limit=>$repository->make_text($upload));
-	       last;
-	     }
-	   }
-	   if ( -x "/usr/bin/clamdscan") {
-             my $virus=`/usr/bin/clamdscan --no-summary --fdpass $local_path/$file 2>/dev/null`;
-             if ($virus=~/FOUND/) {
-               $virus=~s/^.*:\s*//;
-               $virus=~s/\sFOUND\s*.*$//;
-               $document->remove;
-               $repository->log( $repository->phrase("document_validate:upload_error_virus",virus=>$repository->make_text($virus),file=>$repository->make_text("$local_path/$file")));
-               push @problems, $repository->html_phrase("document_validate:upload_error_virus",virus=>$repository->make_text($virus),file=>$repository->make_text($file));
-               last;
-              }
-	    }
-         }
-         # fine test antivirus
-
-
+        # start antivirus check:  must be the last check
+	if ($repository->can_call('upload_file')) {
+		my $files=$document->get_value( "files" );
+		my @problems2=();
+		foreach my $file (@{$files}) {
+			my @problems2=$repository->call('upload_file', $repository,$file);
+			push @problems,@problems2;
+		}
+	}
+        # end antivirus check
 
 	return( @problems );
 };
