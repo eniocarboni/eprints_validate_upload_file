@@ -73,7 +73,7 @@ $c->{validate_document} = sub
 		my @problems2=();
 		foreach my $file (@{$files}) {
 			my @problems2=$repository->call('upload_file', $repository,$file);
-			push @problems,@problems2;
+			push @problems,@problems2 if @problems2;
 		}
 	}
         # end antivirus check
